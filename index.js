@@ -30,8 +30,37 @@ async function run() {
 
     const campCollection = client.db('careCamp').collection('camp');
 
+    // app.get('/camps', async (req, res) => {
+    //   const result = await campCollection.find().toArray();
+    //   res.send(result);
+    // });
+
+
     app.get('/camps', async (req, res) => {
-      const result = await campCollection.find().toArray();
+      const {sort} = req.query;
+      let sortBy = {};
+    
+      switch (sort) {
+        case 'most-registered':
+          sortBy = { participantCount: -1 };
+          break;
+        case 'fees-high-to-low':
+          sortBy = { fees: -1 };
+          break;
+        case 'fees-low-to-high':
+          sortBy = { fees: 1 };
+          break;
+        case 'camp-name-asc':
+          sortBy = { campName: 1 };
+          break;
+        case 'camp-name-desc':
+          sortBy = { campName: -1 };
+          break;
+        default:
+          sortBy = {};
+      }
+    
+      const result = await campCollection.find().sort(sortBy).toArray();
       res.send(result);
     });
 
