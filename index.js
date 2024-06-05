@@ -30,16 +30,13 @@ async function run() {
 
     const campCollection = client.db('careCamp').collection('camp');
 
-    // app.get('/camps', async (req, res) => {
-    //   const result = await campCollection.find().toArray();
-    //   res.send(result);
-    // });
 
 
     app.get('/camps', async (req, res) => {
-      const {sort} = req.query;
+      const { sort,keyword } = req.query;
       let sortBy = {};
-    
+      let query = {};
+
       switch (sort) {
         case 'most-registered':
           sortBy = { participantCount: -1 };
@@ -59,8 +56,20 @@ async function run() {
         default:
           sortBy = {};
       }
-    
-      const result = await campCollection.find().sort(sortBy).toArray();
+
+      if (keyword) {
+        query = {
+          $or: [
+            { campName: { $regex: keyword, $options: 'i' } }, 
+            { description: { $regex: keyword, $options: 'i' } } ,
+            { fees: { $regex: keyword, $options: 'i' } } ,
+            { location: { $regex: keyword, $options: 'i' } } ,
+            { dateTime: { $regex: keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
+          ]
+        };
+      }
+
+      const result = await campCollection.find(query).sort(sortBy).toArray();
       res.send(result);
     });
 
