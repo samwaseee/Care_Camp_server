@@ -73,7 +73,7 @@ async function run() {
 
 
     app.get('/camps', async (req, res) => {
-      const { sort,keyword } = req.query;
+      const { sort, keyword } = req.query;
       let sortBy = {};
       let query = {};
 
@@ -100,10 +100,11 @@ async function run() {
       if (keyword) {
         query = {
           $or: [
-            { campName: { $regex: keyword, $options: 'i' } }, 
-            { description: { $regex: keyword, $options: 'i' } } ,
-            { fees: { $regex: keyword, $options: 'i' } } ,
-            { location: { $regex: keyword, $options: 'i' } } ,
+            { campName: { $regex: keyword, $options: 'i' } },
+            { description: { $regex: keyword, $options: 'i' } },
+            { fees: { $regex: keyword, $options: 'i' } },
+            { location: { $regex: keyword, $options: 'i' } },
+            { 'contactInformation.email': { $regex: keyword, $options: 'i' } },
             { dateTime: { $regex: keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
           ]
         };
@@ -113,26 +114,71 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/camps/:id', async (req, res) => {
+    app.get('/camps/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await campCollection.findOne(query);
       res.send(result);
     });
 
+    app.post('/camps', async (req, res) => {
+      const item = req.body;
+      const result = await campCollection.insertOne(item);
+      res.send(result);
+    });
+
+    app.patch('/camps/:id', verifyToken, async (req, res) => {
+
+      const id = req.params.id;
+      const updatedCampData = req.body;
+
+      const filter = { _id: new ObjectId(id) };
+
+      const updatedDoc = {
+        $set: updatedCampData
+      };
+
+      const result = await campCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+
+    });
+
+    app.delete('/camps/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await campCollection.deleteOne(query);
+      res.send(result);
+    });
+
+
+
+
+
     // joinedCamps collection
     app.get('/joinedCamps', async (req, res) => {
-      const email = req.query.email;
+      const email = req.query.organizerMail;
       const query = { email: email };
       const result = await joinedCampCollection.find(query).toArray();
       res.send(result);
     });
 
-    app.post('/joinedCamps',verifyToken, async (req, res) => {
+    app.post('/joinedCamps', verifyToken, async (req, res) => {
       const cartItem = req.body;
       const result = await joinedCampCollection.insertOne(cartItem);
       res.send(result);
     });
+
+    app.patch('/joinedCamps/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          confirmationStatus: 'Confirmed'
+        }
+      }
+      const result = await joinedCampCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    })
 
     app.delete('/joinedCamps/:id', async (req, res) => {
       const id = req.params.id;
@@ -147,6 +193,22 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
+
+    app.get('/users/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: 'forbidden access' })
+      }
+
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === 'admin';
+      }
+      res.send({ admin });
+    })
 
     app.post('/users', async (req, res) => {
       const user = req.body;
