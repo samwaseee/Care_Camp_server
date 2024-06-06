@@ -31,6 +31,8 @@ async function run() {
 
     const campCollection = client.db('careCamp').collection('camp');
     const userCollection = client.db("careCamp").collection("users");
+    const joinedCampCollection = client.db("careCamp").collection("joinedCamps");
+    const paymentCollection = client.db("careCamp").collection("payments");
 
     // jwt related api
     app.post('/jwt', async (req, res) => {
@@ -115,6 +117,27 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await campCollection.findOne(query);
+      res.send(result);
+    });
+
+    // joinedCamps collection
+    app.get('/joinedCamps', async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await joinedCampCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.post('/joinedCamps',verifyToken, async (req, res) => {
+      const cartItem = req.body;
+      const result = await joinedCampCollection.insertOne(cartItem);
+      res.send(result);
+    });
+
+    app.delete('/joinedCamps/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await joinedCampCollection.deleteOne(query);
       res.send(result);
     });
 
