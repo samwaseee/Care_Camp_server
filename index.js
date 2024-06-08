@@ -195,6 +195,19 @@ async function run() {
       res.send(result);
     })
 
+    app.patch('/joinedCamps/payment/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+        paymentStatus: 'paid'
+        }
+      }
+      // console.log('hit')
+      const result = await joinedCampCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    })
+
     app.delete('/joinedCamps/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
@@ -244,7 +257,6 @@ async function run() {
     app.post('/create-payment-intent', async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
-      console.log(amount, 'amount inside the intent')
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
@@ -256,6 +268,32 @@ async function run() {
         clientSecret: paymentIntent.client_secret
       })
     });
+
+
+
+    app.get('/payments/:email', verifyToken, async (req, res) => {
+      const query = { email: req.params.email }
+      if (req.params.email !== req.decoded.email) {
+        return res.status(403).send({ message: 'forbidden access' });
+      }
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    })
+
+
+    app.post('/payments',verifyToken, async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+
+      res.send({ paymentResult });
+    })
+
+
+
+
+
+
+
 
 
 
