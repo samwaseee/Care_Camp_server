@@ -8,7 +8,15 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://care-camp-a12.web.app",
+      "https://care-camp-a12.firebaseapp.com",
+    ]
+  })
+);
 app.use(express.json());
 
 
@@ -241,7 +249,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/users/:email', verifyToken, async (req, res) => {
+    app.get('/users/admin/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
 
       if (email !== req.decoded.email) {
@@ -259,8 +267,6 @@ async function run() {
 
     app.post('/users', async (req, res) => {
       const user = req.body;
-      // insert email if user doesnt exists: 
-      // you can do this many ways (1. email unique, 2. upsert 3. simple checking)
       const query = { email: user.email }
       const existingUser = await userCollection.findOne(query);
       if (existingUser) {
@@ -321,7 +327,7 @@ async function run() {
 
     // Send a ping to confirm a successful connection
     //await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     //await client.close();
