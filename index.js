@@ -34,6 +34,7 @@ async function run() {
     const userCollection = client.db("careCamp").collection("users");
     const joinedCampCollection = client.db("careCamp").collection("joinedCamps");
     const paymentCollection = client.db("careCamp").collection("payments");
+    const feedbackCollection = client.db("careCamp").collection("feedbacks");
 
     // jwt related api
     app.post('/jwt', async (req, res) => {
@@ -178,8 +179,15 @@ async function run() {
     });
 
     app.post('/joinedCamps', verifyToken, async (req, res) => {
-      const cartItem = req.body;
-      const result = await joinedCampCollection.insertOne(cartItem);
+      const camp = req.body;
+      const result = await joinedCampCollection.insertOne(camp);
+
+      const filter = { _id: new ObjectId(camp.campId) };
+      const update = { $inc: { participantCount: 1 } }; 
+
+      const updateCount = await campCollection.updateOne(filter, update);
+
+      // console.log(updateCount, camp.campId)
       res.send(result);
     });
 
@@ -200,7 +208,7 @@ async function run() {
       const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
         $set: {
-        paymentStatus: 'paid'
+          paymentStatus: 'paid'
         }
       }
       // console.log('hit')
@@ -212,6 +220,17 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await joinedCampCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.get('/feedbacks', async (req, res) => {
+      const result = await feedbackCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post('/feedbacks', async (req, res) => {
+      const item = req.body;
+      const result = await feedbackCollection.insertOne(item);
       res.send(result);
     });
 
@@ -273,15 +292,15 @@ async function run() {
 
     app.get('/payments/:email', verifyToken, async (req, res) => {
       const query = { email: req.params.email }
-      if (req.params.email !== req.decoded.email) {
-        return res.status(403).send({ message: 'forbidden access' });
-      }
+      // if (req.params.email !== req.decoded.email) {
+      //   return res.status(403).send({ message: 'forbidden access' });
+      // }
       const result = await paymentCollection.find(query).toArray();
       res.send(result);
     })
 
 
-    app.post('/payments',verifyToken, async (req, res) => {
+    app.post('/payments', verifyToken, async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
 
